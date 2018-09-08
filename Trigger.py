@@ -30,7 +30,7 @@ class LogProcessor():
 			f.close()
 
 class DouyuRoomNotification():
-	def __init__(self, logger):
+	def __init__(self, logger, interval=60, retry_interval=1):
 		print 'Reading json file...'
 		data = self.ReadData()
 		self.email = data['email']
@@ -39,6 +39,8 @@ class DouyuRoomNotification():
 		print 'Success.'
 
 		self.logger = logger
+		self.interval = interval
+		self.retry_interval = retry_interval
 
 		self.url = "http://open.douyucdn.cn/api/RoomApi/room/" + self.room_id
 		self.room_status = None
@@ -56,7 +58,7 @@ class DouyuRoomNotification():
 		print 'Success.'
 
 		while True:
-			CheckStatus(self.room_status)
+			self.CheckStatus()
 
 	def InitRoomStatus(self):
 		print 'Start init room_status...'
@@ -66,11 +68,12 @@ class DouyuRoomNotification():
 				r = requests.get(url=self.url)
 				print r
 				data = r.json()
+				print 'Start as ' + self.GetStringForCode(data[u'data'][u'room_status']) + '.'
 				self.logger.Log('Start as ' + self.GetStringForCode(data[u'data'][u'room_status']))
 				return self.GetStatusForCode(data[u'data'][u'room_status'])
 			except Exception as e:
 				self.logger.Log('Exception caught, retry in 1 sec...')
-				time.sleep(1)
+				time.sleep(self.retry_interval)
 
 	def GetCodeForStatus(self):
 		return u'1' if self.room_status else u'2'
@@ -90,6 +93,7 @@ class DouyuRoomNotification():
 			try:
 				r = requests.get(url=self.url)
 				data = r.json()
+				print 'Receive status: ' + self.GetStringForCode(data[u'data'][u'room_status']) + '.'
 				if data[u'data'][u'room_status'] != self.GetCodeForStatus():
 					self.room_status = not self.room_status
 					self.TriggerIFTTT()
@@ -97,10 +101,10 @@ class DouyuRoomNotification():
 					break
 				else:
 					self.logger.Log(self.GetStringForStatus() + ' at ' + standard_time)
-					time.sleep(60)
+					time.sleep(self.interval)
 			except Exception as e:
 				self.logger.Log('Exception caught, retry in 1 sec...')
-				time.sleep(1)
+				time.sleep(self.retry_interval)
 
 
 	def TriggerIFTTT(self):
@@ -125,6 +129,6 @@ class DouyuRoomNotification():
 
 
 if __name__ == '__main__':
-	notification = DouyuRoomNotification(LogProcessor())
+	notification = DouyuRoomNotification(LogProcessor(), interval=5)
 	notification.Run()
 
