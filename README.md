@@ -11,5 +11,5 @@ Send an IFTTT e-mail notification while your streamer (especially on douyu.com) 
 ## Usages
 
 - Fill in your e-mail address, password and the room_id of the streamer in `data.json`
-- Excute in Command Line: `nohup python Trigger.py &`
+- Execute in Command Line: `nohup python Trigger.py &`
 
